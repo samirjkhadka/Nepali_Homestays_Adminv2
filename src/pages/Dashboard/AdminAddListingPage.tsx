@@ -275,9 +275,12 @@ async function compressImage(file: File): Promise<File> {
     useWebWorker: true,
   };
   try {
-    const compressed = await imageCompression(file, options);
-    return compressed;
+    const compressedFile = await imageCompression(file, options);
+    return new File([compressedFile], file.name, { type: compressedFile.type });
+
+    //return compressed;
   } catch (err) {
+    console.error(err);
     return file;
   }
 }
@@ -286,7 +289,7 @@ async function compressImage(file: File): Promise<File> {
 async function uploadImages(files: File[], token: string): Promise<string[]> {
   const formData = new FormData();
   for (const file of files) {
-    formData.append("images", file);
+    formData.append("images", file, file.name);
   }
   const res = await fetch(
     `${
@@ -449,7 +452,7 @@ const AdminAddListingPage: React.FC = () => {
         "Listing Added Successfully!",
         "Your listing has been created and is pending approval."
       );
-      navigate("/admin/listings");
+      navigate("/listings");
     } catch (err: any) {
       const errorMessage = err.message || "Failed to add listing";
       setErrors({ submit: errorMessage });
