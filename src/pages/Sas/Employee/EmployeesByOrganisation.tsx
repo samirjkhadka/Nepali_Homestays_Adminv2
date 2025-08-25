@@ -1,0 +1,201 @@
+import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import PageBreadcrumb from '../../../components/common/PageBreadCrumb';
+import { Eye, Edit, Trash2, ArrowLeft, Loader2 } from 'lucide-react';
+import { useEmployees } from '../../../hooks/useApi';
+import { apiClient } from '../../../services/api';
+import type { Employee, Organisation } from '../../../services/api';
+
+const EmployeesByOrganisation = () => {
+  const { orgId } = useParams<{ orgId: string }>();
+  const navigate = useNavigate();
+  const { fetchEmployees, deleteEmployee, loading } = useEmployees();
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [organisation, setOrganisation] = useState<Organisation | null>(null);
+  const [loadingOrg, setLoadingOrg] = useState(true);
+
+  useEffect(() => {
+    if (orgId) {
+      loadOrganisation();
+      loadEmployees();
+    }
+  }, [orgId]);
+
+  const loadOrganisation = async () => {
+    try {
+      setLoadingOrg(true);
+      const orgData = await apiClient.getOrganisation(parseInt(orgId!));
+      setOrganisation(orgData);
+    } catch (error) {
+      console.error('Failed to load organisation:', error);
+    } finally {
+      setLoadingOrg(false);
+    }
+  };
+
+  const loadEmployees = async () => {
+    try {
+      const result = await fetchEmployees({
+        organisation_id: parseInt(orgId!),
+        page: 1,
+        limit: 100
+      });
+      setEmployees(result.data);
+    } catch (error) {
+      console.error('Failed to load employees:', error);
+    }
+  };
+
+  const handleBack = () => {
+    navigate('/organisationList');
+  };
+
+  const handleDeleteEmployee = async (employeeId: number) => {
+    const employee = employees.find(emp => emp.id === employeeId);
+    const employeeName = employee ? `${employee.first_name} ${employee.last_name}` : 'Employee';
+    
+    if (window.confirm(`Are you sure you want to delete ${employeeName}? This action cannot be undone.`)) {
+      try {
+        await deleteEmployee(employeeId);
+        await loadEmployees(); // Reload the list
+      } catch (error) {
+        console.error('Failed to delete employee:', error);
+      }
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "active":
+        return (
+          <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Active</span>
+        );
+      case "inactive":
+        return (
+          <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">Inactive</span>
+        );
+      case "terminated":
+        return (
+          <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">Terminated</span>
+        );
+      default:
+        return (
+          <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">{status}</span>
+        );
+    }
+  };
+
+  if (loadingOrg) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin" />
+        <span className="ml-2">Loading organisation...</span>
+      </div>
+    );
+  }
+
+  if (loading && employees.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin" />
+        <span className="ml-2">Loading employees...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <PageBreadcrumb pageTitle={`Employees of ${organisation?.name || orgId}`} />
+      <div className="mb-6 flex items-center gap-2">
+        <button onClick={handleBack} className="flex items-center gap-2 text-blue-600 hover:text-blue-800">
+          <ArrowLeft className="w-4 h-4" />
+          Back to Organisation List
+        </button>
+      </div>
+      <div className="bg-white shadow rounded-lg overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee ID</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Position</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {employees.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="px-6 py-8 text-center text-gray-500 text-lg">
+                  No employees found.
+                </td>
+              </tr>
+            ) : (
+              employees.map((employee) => (
+                <tr key={employee.id}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {(employee as any).employee_id || employee.id}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="h-10 w-10 flex-shrink-0">
+                        <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
+                          <span className="text-sm font-medium text-gray-700">
+                            {employee.first_name.charAt(0)}{employee.last_name.charAt(0)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="ml-4">
+                        <div className="text-sm font-medium text-gray-900">
+                          {employee.first_name} {employee.last_name}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          Hired: {new Date(employee.hire_date).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.email}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.department}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.position}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.phone}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(employee.status)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex items-center gap-2">
+                      <button 
+                        className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50" 
+                        onClick={() => navigate(`/view-employee/${employee.id}`)} 
+                        title="View Employee"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button 
+                        className="text-green-600 hover:text-green-900 p-1 rounded hover:bg-green-50" 
+                        onClick={() => navigate(`/edit-employee/${employee.id}`)} 
+                        title="Edit Employee"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button 
+                        className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50" 
+                        onClick={() => handleDeleteEmployee(employee.id)}
+                        title="Delete Employee"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+export default EmployeesByOrganisation;
