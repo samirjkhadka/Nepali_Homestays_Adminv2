@@ -40,12 +40,12 @@ const AdminProfilePage: React.FC = () => {
         );
         const profile = res.data.profile;
         const normalized = {
-          first_name: profile.first_name || "",
+          first_name: profile.FullName || "",
           last_name: profile.last_name || "",
-          email: profile.email || "",
-          phone: profile.phone || "",
-          avatar: profile.avatar || profile.profile_image_url || "",
-          profile_image_url: profile.profile_image_url || profile.avatar || "",
+          email: profile.EmailAddress || "",
+          phone: profile.MobileNumber || "",
+          avatar: profile.avatar || profile.ProfileImage || "",
+          profile_image_url: profile.ProfileImage || profile.avatar || "",
           role: profile.role || "",
         };
         setProfile(normalized);
@@ -162,7 +162,7 @@ const AdminProfilePage: React.FC = () => {
           <div className="flex items-center gap-6 p-6 border border-gray-200 rounded-2xl dark:border-gray-800">
             <div className="justify-center w-20 h-20 bg-brand-500 rounded-full text-white font-semibold text-xl">
               <img
-                src={profile.avatar || profile.profile_image_url}
+                src={profile.avatar || profile.ProfileImage}
                 alt="avatar"
                 className="w-16 h-16 rounded-full border object-cover border-gray-200 dark:border-gray-800 p-1"
               />

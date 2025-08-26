@@ -46,10 +46,10 @@ export default function UserDropdown() {
         className="flex items-center text-gray-700 dropdown-toggle dark:text-gray-400"
       >
         <span className="mr-3 overflow-hidden rounded-full h-11 w-11 bg-brand-500 flex items-center justify-center text-white font-semibold">
-          {(user.firstName) ? user.firstName.charAt(0) : getInitials(user.name)}{(user.lastName) ? user.lastName.charAt(0) : getInitials(user.name)}
+          { (user.firstName) ? getInitials(user.firstName) : getInitials(user.name)}
         </span>
 
-        <span className="block mr-1 font-medium text-theme-sm">{user.name}</span>
+        <span className="block mr-1 font-medium text-theme-sm">{user.firstName}</span>
         <svg
           className={`stroke-gray-500 dark:stroke-gray-400 transition-transform duration-200 ${
             isOpen ? "rotate-180" : ""

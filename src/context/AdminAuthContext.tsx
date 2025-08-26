@@ -5,6 +5,7 @@ export type AdminRole = "admin" | "host" | "guest";
 export interface AdminUser {
   id?: string;
   name: string;
+  FullName: string;
   firstName?: string;
   lastName?: string;
   phone?: string;

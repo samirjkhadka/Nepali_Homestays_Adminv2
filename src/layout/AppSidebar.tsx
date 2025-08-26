@@ -13,6 +13,8 @@ import {
   HotelIcon,
   LockIcon,
   Phone,
+  User2Icon,
+  UserCheck2,
   UserCog2,
   Users2,
 } from "lucide-react";
@@ -39,6 +41,11 @@ const navItems: NavItem[] = [
   {
     icon: <Users2 />,
     name: "Guests",
+    path: "/admin/users",
+  },
+  {
+    icon: <UserCheck2 />,
+    name: "Hosts",
     path: "/admin/users",
   },
   {

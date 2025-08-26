@@ -91,7 +91,7 @@ const AdminDashboardPage: React.FC = () => {
                   <Users className="h-7 w-7 text-blue-600 " />
                 </div>
                 <div className="mt-3 text-lg font-semibold text-gray-900 dark:text-white">
-                  Total Users
+                  Total Guests
                 </div>
                 <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 group-hover:text-primary-600 mt-1">
                   {stats.users?.total ?? "-"}

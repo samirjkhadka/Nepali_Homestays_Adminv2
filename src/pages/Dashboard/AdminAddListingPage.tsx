@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Home,
@@ -22,66 +22,17 @@ import { apiFetch } from "../../services/api";
 import PageMeta from "../../components/common/PageMeta";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import Button from "../../components/ui/button/Button";
+import {
+  ACTIVITY_OPTIONS,
+  DISTRICTS,
+  MUNICIPALITIES,
+  TYPE_OPTIONS,
+  CATEGORY_OPTIONS,
+  PROVINCES,
+  COUNTRY_OPTIONS,
+  FACILITY_CATEGORIES,
+} from "../../data/mockData";
 
-// Dummy data for dropdowns (replace with API data later)
-const PROVINCES = [
-  "Province 1",
-  "Province 2",
-  "Bagmati",
-  "Gandaki",
-  "Lumbini",
-  "Karnali",
-  "Sudurpaschim",
-];
-const DISTRICTS = {
-  Bagmati: ["Kathmandu", "Lalitpur", "Bhaktapur"],
-  Gandaki: ["Pokhara"],
-  "Province 1": ["Morang", "Sunsari"],
-  "Province 2": ["Bara", "Parsa"],
-  Lumbini: ["Rupandehi"],
-  Karnali: ["Jumla"],
-  Sudurpaschim: ["Dhangadhi"],
-};
-const MUNICIPALITIES = {
-  Kathmandu: ["KMC", "Tokha"],
-  Pokhara: ["Pokhara-1", "Pokhara-2"],
-  Morang: ["Biratnagar"],
-  Sunsari: ["Itahari"],
-  Bara: ["Kalaiya"],
-  Parsa: ["Birgunj"],
-  Rupandehi: ["Butwal"],
-  Jumla: ["Chandannath"],
-  Dhangadhi: ["Ghodaghodi"],
-};
-const FACILITY_CATEGORIES = [
-  { category: "Water", options: ["Hot", "Cold"] },
-  { category: "Food", options: ["Veg", "Non-Veg"] },
-  { category: "Bathroom", options: ["Common", "Private"] },
-];
-const ACTIVITY_OPTIONS = [
-  "Hiking",
-  "Sight Seeing",
-  "Boating",
-  "Farming",
-  "Cooking",
-  "Jungle Safari",
-  "Yoga",
-  "Meditation",
-];
-const COUNTRY_OPTIONS = ["Nepal", "India", "Other"];
-const TYPE_OPTIONS = [
-  { value: "homestay", label: "Homestay" },
-  { value: "guesthouse", label: "Guesthouse" },
-  { value: "apartment", label: "Apartment" },
-  { value: "house", label: "House" },
-];
-const CATEGORY_OPTIONS = [
-  { value: "traditional", label: "Traditional" },
-  { value: "modern", label: "Modern" },
-  { value: "luxury", label: "Luxury" },
-  { value: "budget", label: "Budget" },
-  { value: "family", label: "Family" },
-];
 const initialForm = {
   type: "",
   name: "",
@@ -134,7 +85,10 @@ const initialImages = {
   contact_id_back: null,
   homestay_photos: [], // up to 10
 };
-
+interface District {
+  id: number;
+  name: string;
+}
 function validateForm(form: any, images: any) {
   const errors: any = {};
   // Required text fields
@@ -320,10 +274,82 @@ const AdminAddListingPage: React.FC = () => {
     initialActivityPrices
   );
   const [loading, setLoading] = useState(false);
+  const [provinces, setProvinces] = useState<string[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [municipalities, setMunicipalities] = useState<string[]>([]);
+  const [apiLoading, setApiLoading]  = useState<boolean>(false); 
+
+ useEffect(() => {
+    const fetchProvinces = async () => {
+      setApiLoading(true);
+      try {
+        const response = await apiFetch<{ data: { provinces: string[] } }>('/admin/provinces',{}, token || "");
+        setProvinces(response.data.provinces);
+      } catch (error) {
+        console.error('Error fetching provinces:', error);
+        setErrors((prev: any) => ({ ...prev, province: 'Failed to load provinces' }));
+      } finally {
+        setApiLoading(false);
+      }
+    };
+    fetchProvinces();
+  }, []);
+
+useEffect(() => {
+    if (form.province) {
+      const fetchDistricts = async () => {
+        setApiLoading(true);
+        setDistricts([]); // Clear districts
+        setMunicipalities([]); // Clear municipalities
+        setForm((prev: any) => ({ ...prev, district: '', municipality: '' })); // Reset dependent fields
+        try {
+          const provinceId = provinces.indexOf(form.province) + 1; // Assuming 1-based indexing
+          const response = await apiFetch<string[]>(`/admin/provinces/${provinceId}/districts`,{}, token || "");
+          // Map district names to objects with IDs (assuming IDs are not provided; adjust as needed)
+          const districtObjects = response.map((name, index) => ({
+            id: index + 1, // Temporary ID; replace with actual ID from API
+            name,
+          }));
+          setDistricts(districtObjects);
+        } catch (error) {
+          console.error('Error fetching districts:', error);
+          setErrors((prev: any) => ({ ...prev, district: 'Failed to load districts' }));
+        } finally {
+          setApiLoading(false);
+        }
+      };
+      fetchDistricts();
+    }
+  }, [form.province, provinces]);
+
+  // NEW: Fetch municipalities when district changes
+  useEffect(() => {
+    if (form.district) {
+      const fetchMunicipalities = async () => {
+        setApiLoading(true);
+        setMunicipalities([]); // Clear municipalities
+        setForm((prev: any) => ({ ...prev, municipality: '' })); // Reset municipality
+        try {
+          const selectedDistrict = districts.find(d => d.name === form.district);
+          const districtId = selectedDistrict ? selectedDistrict.id : 1; // Fallback to 1 if not found
+          const response = await apiFetch<string[]>(`/admin/provinces/${form.district}/municipalities`,{}, token || "");
+          setMunicipalities(response);
+        } catch (error) {
+          console.error('Error fetching municipalities:', error);
+          setErrors((prev: any) => ({ ...prev, municipality: 'Failed to load municipalities' }));
+        } finally {
+          setApiLoading(false);
+        }
+      };
+      fetchMunicipalities();
+    }
+  }, [form.district, token]);
+
+
 
   // Dynamic dropdowns
-  const districts = DISTRICTS[form.province] || [];
-  const municipalities = MUNICIPALITIES[form.district] || [];
+  // const districts = DISTRICTS[form.province] || [];
+  // const municipalities = MUNICIPALITIES[form.district] || [];
 
   // Handlers
   const handleChange = (
@@ -621,7 +647,7 @@ const AdminAddListingPage: React.FC = () => {
         <div className="flex flex-col md:flex-row gap-12 w-full max-w-7xl mx-auto">
           {/* Stepper */}
           <div className="w-full md:w-80 flex-shrink-0 mb-8 md:mb-0">
-            <ol className="space-y-6 bg-white dark:bg-gray-900 rounded-xl shadow p-8 border border-gray-100 dark:border-gray-800">
+            <ol className="space-y-6 bg-white text-gray-500 dark:bg-gray-900 rounded-xl shadow p-8 border border-gray-100 dark:border-gray-800">
               {STEPS.map((label, idx) => (
                 <li
                   key={label}
@@ -636,7 +662,7 @@ const AdminAddListingPage: React.FC = () => {
                   <span
                     className={`h-8 w-8 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
                       step === idx
-                        ? "bg-nepal-blue text-white border-nepal-blue"
+                        ? "bg-gray-900 text-white border-nepal-blue"
                         : idx < step
                         ? "bg-green-100 text-green-600 border-green-400"
                         : "bg-white border-gray-300"
@@ -698,7 +724,7 @@ const AdminAddListingPage: React.FC = () => {
                   </div>
 
                   {form.type === "homestay" && (
-                    <div>
+                    <div className="mb-6">
                       <label className="block text-xs font-medium mb-1 dark:text-gray-200">
                         Homestay Type <span className="text-red-500">*</span>
                       </label>
@@ -745,6 +771,69 @@ const AdminAddListingPage: React.FC = () => {
                       )}
                     </div>
                   )}
+                  <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-6 dark:text-gray-200 mt-6">
+                    <div>
+                      <label className="block text-xs font-medium mb-1">
+                        Category <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        name="category"
+                        value={form.category}
+                        onChange={handleValidatedChange}
+                        className={`border w-full px-3 py-2 rounded-xl ${
+                          errors.category
+                            ? "border-red-400"
+                            : form.category
+                            ? "border-green-400"
+                            : ""
+                        }`}
+                        required
+                      >
+                        <option value="">Select Category</option>
+                        {CATEGORY_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                      {errors.category && (
+                        <div className="text-red-500 text-xs mt-1">
+                          {errors.category}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1">
+                        Host <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        name="category"
+                        value={form.category}
+                        onChange={handleValidatedChange}
+                        className={`border w-full px-3 py-2 rounded-xl ${
+                          errors.category
+                            ? "border-red-400"
+                            : form.category
+                            ? "border-green-400"
+                            : ""
+                        }`}
+                        required
+                      >
+                        <option value="">Select Category</option>
+                        {CATEGORY_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                      {errors.category && (
+                        <div className="text-red-500 text-xs mt-1">
+                          {errors.category}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 dark:text-gray-200 mt-6">
                     <div>
                       <label className="block text-xs font-medium mb-1">
@@ -959,31 +1048,25 @@ const AdminAddListingPage: React.FC = () => {
                     </div>
                     <div>
                       <label className="block text-xs font-medium mb-1">
-                        Category <span className="text-red-500">*</span>
+                        Normal Package Cost (NPR){" "}
+                        <span className="text-red-500">*</span>
                       </label>
-                      <select
-                        name="category"
-                        value={form.category}
+                      <input
+                        name="normal_package_cost"
+                        value={form.normal_package_cost}
                         onChange={handleValidatedChange}
                         className={`border w-full px-3 py-2 rounded-xl ${
-                          errors.category
+                          errors.normal_package_cost
                             ? "border-red-400"
-                            : form.category
+                            : form.normal_package_cost
                             ? "border-green-400"
                             : ""
                         }`}
                         required
-                      >
-                        <option value="">Select Category</option>
-                        {CATEGORY_OPTIONS.map((opt) => (
-                          <option key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </option>
-                        ))}
-                      </select>
-                      {errors.category && (
+                      />
+                      {errors.normal_package_cost && (
                         <div className="text-red-500 text-xs mt-1">
-                          {errors.category}
+                          {errors.normal_package_cost}
                         </div>
                       )}
                     </div>
@@ -1019,9 +1102,10 @@ const AdminAddListingPage: React.FC = () => {
                             : ""
                         }`}
                         required
+                        disabled={apiLoading}
                       >
                         <option value="">Select Province</option>
-                        {PROVINCES.map((p) => (
+                        {provinces.map((p) => (
                           <option key={p}>{p}</option>
                         ))}
                       </select>
@@ -1047,11 +1131,11 @@ const AdminAddListingPage: React.FC = () => {
                             : ""
                         }`}
                         required
-                        disabled={!form.province}
+                        disabled={!form.province || apiLoading}
                       >
                         <option value="">Select District</option>
                         {districts.map((d) => (
-                          <option key={d}>{d}</option>
+                          <option key={d.id}>{d.name}</option>
                         ))}
                       </select>
                       {errors.district && (
@@ -1076,7 +1160,7 @@ const AdminAddListingPage: React.FC = () => {
                             : ""
                         }`}
                         required
-                        disabled={!form.district}
+                        disabled={!form.district || apiLoading}
                       >
                         <option value="">Select Municipality</option>
                         {municipalities.map((m) => (
@@ -1137,30 +1221,7 @@ const AdminAddListingPage: React.FC = () => {
                         </div>
                       )}
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium mb-1">
-                        Normal Package Cost{" "}
-                        <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        name="normal_package_cost"
-                        value={form.normal_package_cost}
-                        onChange={handleValidatedChange}
-                        className={`border w-full px-3 py-2 rounded-xl ${
-                          errors.normal_package_cost
-                            ? "border-red-400"
-                            : form.normal_package_cost
-                            ? "border-green-400"
-                            : ""
-                        }`}
-                        required
-                      />
-                      {errors.normal_package_cost && (
-                        <div className="text-red-500 text-xs mt-1">
-                          {errors.normal_package_cost}
-                        </div>
-                      )}
-                    </div>
+
                     <div>
                       <label className="block text-xs font-medium mb-1">
                         Address <span className="text-red-500">*</span>

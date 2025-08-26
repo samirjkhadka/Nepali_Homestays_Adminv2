@@ -8,6 +8,10 @@ import {
   ArrowRight,
   Plus,
   Search,
+  Eye,
+  Lock,
+  UserX,
+  Shield,
 } from "lucide-react";
 import Tooltip from "../../components/Tooltip";
 import { apiFetch } from "../../services/api";
@@ -279,20 +283,20 @@ const AdminAdminUsersPage: React.FC = () => {
                 >
                   {/* Name */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-200">
-                    {(admin.first_name || admin.firstName || "") +
+                    {(admin.FullName || admin.firstName || "") +
                       " " +
                       (admin.last_name || admin.lastName || "")}
                   </td>
                   {/* Email */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-200">
-                    {admin.email}
+                    {admin.EmailAddress}
                   </td>
                   {/* Permissions */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-200">
-                    <span>{admin.phone}</span>
+                    <span>{admin.MobileNumber}</span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-200">
-                    <span>{admin.role}</span>
+                    <span>{admin.role|| "No Role Specified"} </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-200">
                     <span>-</span>
@@ -304,7 +308,7 @@ const AdminAdminUsersPage: React.FC = () => {
                         name="status"
                         value={
                           editForm.status ||
-                          (admin.is_active ? "active" : "blocked")
+                          (admin.Status ? "active" : "blocked")
                         }
                         onChange={handleEditChange}
                         className="border border-gray-300 rounded-lg w-full dark:text-gray-200"
@@ -315,12 +319,12 @@ const AdminAdminUsersPage: React.FC = () => {
                     ) : (
                       <span
                         className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                          admin.is_active
+                          admin.Status
                             ? "bg-green-100 text-green-800"
                             : "bg-red-100 text-red-800"
                         }`}
                       >
-                        {admin.is_active ? "Active" : "Inactive"}
+                        {admin.Status ? "Active" : "Inactive"}
                       </span>
                     )}
                   </td>
@@ -361,6 +365,35 @@ const AdminAdminUsersPage: React.FC = () => {
                             onClick={() => handleDelete(admin._id || admin.id)}
                           >
                             <Trash2 className="h-4 w-4" />
+                          </button>
+                        </Tooltip>
+                        <Tooltip content="View">
+                          <button className="">
+                            <Eye className="h-4 w-4" />
+                          </button>
+                        </Tooltip>
+                        <Tooltip content="Reset Password">
+                          <button
+                            className="btn-secondary px-2 py-1 text-xs rounded-lg flex items-center justify-center ml-2 dark:text-gray-200"
+                            onClick={() => handleResetPassword(admin)}
+                          >
+                            <Lock className="h-4 w-4" />
+                          </button>
+                        </Tooltip>
+                        <Tooltip content="Enable/Disable">
+                          <button
+                            className="btn-danger px-2 py-1 text-xs rounded-lg flex items-center justify-center ml-2 dark:text-gray-200"
+                            onClick={() => handleDisable(admin)}
+                          >
+                            <UserX className="h-4 w-4" />
+                          </button>
+                        </Tooltip>
+                        <Tooltip content="Edit Role">
+                          <button
+                            className="btn-secondary px-2 py-1 text-xs rounded-lg flex items-center justify-center ml-2 dark:text-gray-200"
+                            onClick={() => handlePermissions(admin)}
+                          >
+                            <Shield className="h-4 w-4" />
                           </button>
                         </Tooltip>
                       </>
