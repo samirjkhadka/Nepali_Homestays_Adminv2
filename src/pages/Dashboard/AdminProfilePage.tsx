@@ -40,12 +40,12 @@ const AdminProfilePage: React.FC = () => {
         );
         const profile = res.data.profile;
         const normalized = {
-          first_name: profile.FullName || "",
+          first_name: profile.first_name || "",
           last_name: profile.last_name || "",
-          email: profile.EmailAddress || "",
-          phone: profile.MobileNumber || "",
-          avatar: profile.avatar || profile.ProfileImage || "",
-          profile_image_url: profile.ProfileImage || profile.avatar || "",
+          email: profile.email || "",
+          phone: profile.phone || "",
+          avatar: profile.avatar || profile.profile_image_url || "",
+          profile_image_url: profile.profile_image_url || profile.avatar || "",
           role: profile.role || "",
         };
         setProfile(normalized);

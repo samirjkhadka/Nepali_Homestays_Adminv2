@@ -268,6 +268,7 @@ const AdminEditListingPage: React.FC = () => {
 
   const fetchListingData = async () => {
     if (!id || !token) return;
+    console.log(id)
     try {
       const res = await apiFetch<{ data: { listing: any } }>(
         `/admin/listings/${id}`,
@@ -275,15 +276,16 @@ const AdminEditListingPage: React.FC = () => {
         token
       );
       const listing = res.data.listing;
+      console.log(listing);
 
       // Map backend data to form fields
       setForm({
         type: listing.type || "",
-        name: listing.title || "",
-        registration_office: listing.registration_office || "Not provided",
+        name: listing.HomestayName || "",
+        registration_office: listing.OfficeOfRegistration || "Not provided",
         registration_place: listing.registration_place || "Not provided",
         registration_no: listing.registration_no || "Not provided",
-        pan_no: listing.pan_no || "Not provided",
+        pan_no: listing.PANNo || "Not provided",
         province: listing.state || "",
         district: listing.city || "",
         municipality: listing.municipality || "Not provided",

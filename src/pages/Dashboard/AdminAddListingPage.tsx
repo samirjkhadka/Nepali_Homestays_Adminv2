@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Home,
@@ -24,14 +24,13 @@ import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import Button from "../../components/ui/button/Button";
 import {
   ACTIVITY_OPTIONS,
-  DISTRICTS,
-  MUNICIPALITIES,
   TYPE_OPTIONS,
   CATEGORY_OPTIONS,
-  PROVINCES,
   COUNTRY_OPTIONS,
   FACILITY_CATEGORIES,
 } from "../../data/mockData";
+import AsyncSelect from "react-select/async";
+import debounce from "lodash.debounce";
 
 const initialForm = {
   type: "",
@@ -89,6 +88,16 @@ interface District {
   id: number;
   name: string;
 }
+
+interface User {
+  Id: string;
+  FullName: string;
+  EmailAddress: string;
+  Username: string;
+  MobileNumber: string;
+  role: string | null;
+}
+
 function validateForm(form: any, images: any) {
   const errors: any = {};
   // Required text fields
@@ -277,34 +286,73 @@ const AdminAddListingPage: React.FC = () => {
   const [provinces, setProvinces] = useState<string[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
   const [municipalities, setMunicipalities] = useState<string[]>([]);
-  const [apiLoading, setApiLoading]  = useState<boolean>(false); 
+  //const [users, setUsers] = useState<User[]>([]);
+  const [apiLoading, setApiLoading] = useState<boolean>(false);
 
- useEffect(() => {
-    const fetchProvinces = async () => {
-      setApiLoading(true);
-      try {
-        const response = await apiFetch<{ data: { provinces: string[] } }>('/admin/provinces',{}, token || "");
-        setProvinces(response.data.provinces);
-      } catch (error) {
-        console.error('Error fetching provinces:', error);
-        setErrors((prev: any) => ({ ...prev, province: 'Failed to load provinces' }));
-      } finally {
-        setApiLoading(false);
-      }
-    };
-    fetchProvinces();
-  }, []);
+  const loadUsers = useCallback(
+    debounce(
+      (
+        inputValue: string,
+        callback: (options: { value: string; label: string }[]) => void
+      ) => {
+        console.log("Loading users...", inputValue);
+        (async () => {
+          try {
+            const queryParams: Record<string, string> = {
+              page: "1",
+              limit: "10",
+            };
+            if (inputValue) {
+              queryParams.search = inputValue;
+            }
+            const query = new URLSearchParams(queryParams).toString();
+            console.log("Fetching users with Query:", query);
+            const response = await apiFetch<{
+              data: {
+                users: User[];
+                pagination: {
+                  page: number;
+                  limit: number;
+                  total: number;
+                  totalPages: number;
+                };
+              };
+            }>(`/admin/users?${query}`, {}, token || "");
+            const options = response.data.users.map((user) => ({
+              value: user.Id,
+              label: `${user.FullName} (${user.EmailAddress})`,
+            }));
+            console.log("Fetched users:", options);
+            callback(options);
+          } catch (error) {
+            console.error("Error fetching users:", error);
+            setErrors((prev: any) => ({
+              ...prev,
+              host: "Failed to load users",
+            }));
+            callback([]);
+          }
+        })();
+      },
+      300
+    ),
+    [token]
+  );
 
-useEffect(() => {
+  useEffect(() => {
     if (form.province) {
       const fetchDistricts = async () => {
         setApiLoading(true);
         setDistricts([]); // Clear districts
         setMunicipalities([]); // Clear municipalities
-        setForm((prev: any) => ({ ...prev, district: '', municipality: '' })); // Reset dependent fields
+        setForm((prev: any) => ({ ...prev, district: "", municipality: "" })); // Reset dependent fields
         try {
           const provinceId = provinces.indexOf(form.province) + 1; // Assuming 1-based indexing
-          const response = await apiFetch<string[]>(`/admin/provinces/${provinceId}/districts`,{}, token || "");
+          const response = await apiFetch<string[]>(
+            `/admin/provinces/${provinceId}/districts`,
+            {},
+            token || ""
+          );
           // Map district names to objects with IDs (assuming IDs are not provided; adjust as needed)
           const districtObjects = response.map((name, index) => ({
             id: index + 1, // Temporary ID; replace with actual ID from API
@@ -312,8 +360,11 @@ useEffect(() => {
           }));
           setDistricts(districtObjects);
         } catch (error) {
-          console.error('Error fetching districts:', error);
-          setErrors((prev: any) => ({ ...prev, district: 'Failed to load districts' }));
+          console.error("Error fetching districts:", error);
+          setErrors((prev: any) => ({
+            ...prev,
+            district: "Failed to load districts",
+          }));
         } finally {
           setApiLoading(false);
         }
@@ -328,15 +379,22 @@ useEffect(() => {
       const fetchMunicipalities = async () => {
         setApiLoading(true);
         setMunicipalities([]); // Clear municipalities
-        setForm((prev: any) => ({ ...prev, municipality: '' })); // Reset municipality
+        setForm((prev: any) => ({ ...prev, municipality: "" })); // Reset municipality
         try {
-          const selectedDistrict = districts.find(d => d.name === form.district);
-          const districtId = selectedDistrict ? selectedDistrict.id : 1; // Fallback to 1 if not found
-          const response = await apiFetch<string[]>(`/admin/provinces/${form.district}/municipalities`,{}, token || "");
+          //  const selectedDistrict = districts.find(d => d.name === form.district);
+          // const districtId = selectedDistrict ? selectedDistrict.id : 1; // Fallback to 1 if not found
+          const response = await apiFetch<string[]>(
+            `/admin/provinces/${form.district}/municipalities`,
+            {},
+            token || ""
+          );
           setMunicipalities(response);
         } catch (error) {
-          console.error('Error fetching municipalities:', error);
-          setErrors((prev: any) => ({ ...prev, municipality: 'Failed to load municipalities' }));
+          console.error("Error fetching municipalities:", error);
+          setErrors((prev: any) => ({
+            ...prev,
+            municipality: "Failed to load municipalities",
+          }));
         } finally {
           setApiLoading(false);
         }
@@ -345,11 +403,67 @@ useEffect(() => {
     }
   }, [form.district, token]);
 
+  // useEffect(() => {
+  //   const fetchUsers = async () => {
+  //     setApiLoading(true);
+  //     try {
+  //       const response = await apiFetch<{ data: { users: User[] } }>(
+  //         "/admin/users",
+  //         {},
+  //         token || ""
+  //       );
+  //       setUsers(response.data.users);
+  //     } catch (error) {
+  //       console.error("Error fetching users:", error);
+  //       setErrors((prev: any) => ({ ...prev, host: "Failed to load users" }));
+  //     } finally {
+  //       setApiLoading(false);
+  //     }
+  //   };
+  //   fetchUsers();
+  // }, [token]);
 
+  useEffect(() => {
+    const fetchProvinces = async () => {
+      setApiLoading(true);
+      try {
+        const response = await apiFetch<{ data: { provinces: string[] } }>(
+          "/admin/provinces",
+          {},
+          token || ""
+        );
+        setProvinces(response.data.provinces);
+      } catch (error) {
+        console.error("Error fetching provinces:", error);
+        setErrors((prev: any) => ({
+          ...prev,
+          province: "Failed to load provinces",
+        }));
+      } finally {
+        setApiLoading(false);
+      }
+    };
+    fetchProvinces();
+  }, []);
 
-  // Dynamic dropdowns
-  // const districts = DISTRICTS[form.province] || [];
-  // const municipalities = MUNICIPALITIES[form.district] || [];
+  //handler for React-Select
+  const handleHostChange = (
+    selectedOption: { value: string; label: string } | null
+  ) => {
+    setForm((prev: any) => ({
+      ...prev,
+      host: selectedOption ? selectedOption.value : "",
+    }));
+    setErrors((prev: any) => {
+      const newErrors = { ...prev };
+      if (!selectedOption) {
+        newErrors.host = "Required";
+      } else {
+        delete newErrors.host;
+      }
+      return newErrors;
+    });
+  };
 
   // Handlers
   const handleChange = (
@@ -464,6 +578,7 @@ useEffect(() => {
         contact_id_back: idBackUrls[0] || "",
         homestay_photos: photoUrls,
         activity_prices: activityPrices,
+        host: form.host,
       };
       // 4. Submit listing
       await apiFetch(
@@ -505,6 +620,7 @@ useEffect(() => {
         "guest_capacity",
         "num_bathrooms",
         "category",
+        "host",
       ],
       1: [
         "province",
@@ -806,29 +922,58 @@ useEffect(() => {
                       <label className="block text-xs font-medium mb-1">
                         Host <span className="text-red-500">*</span>
                       </label>
-                      <select
-                        name="category"
-                        value={form.category}
-                        onChange={handleValidatedChange}
-                        className={`border w-full px-3 py-2 rounded-xl ${
-                          errors.category
-                            ? "border-red-400"
-                            : form.category
-                            ? "border-green-400"
-                            : ""
-                        }`}
-                        required
-                      >
-                        <option value="">Select Category</option>
-                        {CATEGORY_OPTIONS.map((opt) => (
-                          <option key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </option>
-                        ))}
-                      </select>
-                      {errors.category && (
+                      <AsyncSelect
+                        //cacheOptions
+                        defaultOptions
+                        loadOptions={loadUsers}
+                        onChange={handleHostChange}
+                        placeholder="Search for a host..."
+                        isClearable
+                        isDisabled={apiLoading}
+                        classNamePrefix="react-select"
+                        styles={{
+                          control: (base, state) => ({
+                            ...base,
+                            borderRadius: "0.75rem",
+                            padding: "2px 4px",
+                            borderColor: errors.host
+                              ? "#f87171"
+                              : form.host
+                              ? "#34d399"
+                              : "#e5e7eb",
+                            "&:hover": {
+                              borderColor: errors.host
+                                ? "#f87171"
+                                : form.host
+                                ? "#34d399"
+                                : "#d1d5db",
+                            },
+                            boxShadow: state.isFocused
+                              ? "0 0 0 1px #2563eb"
+                              : "none",
+                            backgroundColor: state.isDisabled
+                              ? "#f3f4f6"
+                              : "white",
+                          }),
+                          menu: (base) => ({
+                            ...base,
+                            backgroundColor: "white",
+                            color: "#1f2937",
+                          }),
+                          option: (base, state) => ({
+                            ...base,
+                            backgroundColor: state.isSelected
+                              ? "#2563eb"
+                              : state.isFocused
+                              ? "#eff6ff"
+                              : "white",
+                            color: state.isSelected ? "white" : "#1f2937",
+                          }),
+                        }}
+                      />
+                      {errors.host && (
                         <div className="text-red-500 text-xs mt-1">
-                          {errors.category}
+                          {errors.host}
                         </div>
                       )}
                     </div>

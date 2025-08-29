@@ -264,7 +264,7 @@ const AdminListingsPage: React.FC = () => {
               <tbody>
                 {paginated.map((listing) => (
                   <tr
-                    key={listing._id || listing.id}
+                    key={listing.HomestayID || listing.HomestayID}
                     className="border-b last:border-b-0 border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group text-gray-700 dark:text-gray-200"
                   >
                     <td className="py-3 px-4">{listing.HomestayName}</td>
@@ -329,11 +329,11 @@ const AdminListingsPage: React.FC = () => {
                             className="btn-primary px-2 py-1 text-xs rounded-lg flex items-center justify-center disabled:opacity-50"
                             disabled={
                               actionLoading ===
-                              (listing._id || listing.id) + "approve"
+                              (listing._id || listing.HomestayID) + "approve"
                             }
                             onClick={() =>
                               handleModerate(
-                                listing._id || listing.id,
+                                listing._id || listing.HomestayID,
                                 "approve"
                               )
                             }
@@ -348,11 +348,11 @@ const AdminListingsPage: React.FC = () => {
                             className="btn-danger px-2 py-1 text-xs rounded-lg flex items-center justify-center disabled:opacity-50"
                             disabled={
                               actionLoading ===
-                              (listing._id || listing.id) + "reject"
+                              (listing._id || listing.HomestayID) + "reject"
                             }
                             onClick={() =>
                               handleModerate(
-                                listing._id || listing.id,
+                                listing._id || listing.HomestayID,
                                 "reject"
                               )
                             }
@@ -367,11 +367,11 @@ const AdminListingsPage: React.FC = () => {
                             className="btn-secondary px-2 py-1 text-xs rounded-lg flex items-center justify-center disabled:opacity-50"
                             disabled={
                               actionLoading ===
-                              (listing._id || listing.id) + "suspend"
+                              (listing._id || listing.HomestayID) + "suspend"
                             }
                             onClick={() =>
                               handleModerate(
-                                listing._id || listing.id,
+                                listing._id || listing.HomestayID,
                                 "suspend"
                               )
                             }
@@ -386,7 +386,7 @@ const AdminListingsPage: React.FC = () => {
                           onClick={() =>
                             navigate(
                               `/admin/listings/view/${
-                                listing._id || listing.id
+                                listing._id || listing.HomestayID
                               }`
                             )
                           }
@@ -400,7 +400,7 @@ const AdminListingsPage: React.FC = () => {
                           onClick={() =>
                             navigate(
                               `/admin/listings/edit/${
-                                listing._id || listing.id
+                                listing._id || listing.HomestayID
                               }`
                             )
                           }

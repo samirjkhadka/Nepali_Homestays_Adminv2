@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAdminAuth } from '../context/AdminAuthContext';
-import { Eye, EyeOff, Home } from 'lucide-react';
+import { useAdminAuth } from '../../context/AdminAuthContext';
+import { Eye, EyeOff } from 'lucide-react';
 
 // const roleOptions: { label: string; value: AdminRole }[] = [
 //   { label: 'Admin', value: 'admin' },

@@ -25,16 +25,16 @@ export default function UserDropdown() {
 
   // If no user is logged in, don't render the dropdown
   if (!user) {
-    console.log('UserDropdown: No user, returning null');
+    console.log("UserDropdown: No user, returning null");
     return null;
   }
 
   // Get initials from user name
   const getInitials = (name: string) => {
     return name
-      .split(' ')
-      .map(word => word.charAt(0))
-      .join('')
+      .split(" ")
+      .map((word) => word.charAt(0))
+      .join("")
       .toUpperCase()
       .slice(0, 2);
   };
@@ -46,10 +46,12 @@ export default function UserDropdown() {
         className="flex items-center text-gray-700 dropdown-toggle dark:text-gray-400"
       >
         <span className="mr-3 overflow-hidden rounded-full h-11 w-11 bg-brand-500 flex items-center justify-center text-white font-semibold">
-          { (user.firstName) ? getInitials(user.firstName) : getInitials(user.name)}
+          {getInitials(user.firstName) + getInitials(user.lastName)}
         </span>
 
-        <span className="block mr-1 font-medium text-theme-sm">{user.firstName}</span>
+        <span className="block mr-1 font-medium text-theme-sm">
+          {user.firstName}
+        </span>
         <svg
           className={`stroke-gray-500 dark:stroke-gray-400 transition-transform duration-200 ${
             isOpen ? "rotate-180" : ""
@@ -77,7 +79,7 @@ export default function UserDropdown() {
       >
         <div>
           <span className="block font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-            {user.name}
+            {user.firstName} {user.lastName}
           </span>
           <span className="mt-0.5 block text-theme-xs text-gray-500 dark:text-gray-400">
             {user.email}

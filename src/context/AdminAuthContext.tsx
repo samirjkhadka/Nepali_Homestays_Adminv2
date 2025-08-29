@@ -101,7 +101,7 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
     
     try {
       // 1. Make an API call to your backend login endpoint
-      const res = await apiFetch<any>("/auth/login", {
+      const res = await apiFetch<any>("/adminauth/adminLogin", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -115,8 +115,8 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
         const { user, token } = res.data;
         setUser({
           ...user,
-          first_name: user.firstname,
-          last_name: user.lastname,
+          first_name: user.first_name,
+          last_name: user.last_name,
           phone: user.phone,
           avatar: user.avatar || user.profile_image_url,
           email: user.email,
