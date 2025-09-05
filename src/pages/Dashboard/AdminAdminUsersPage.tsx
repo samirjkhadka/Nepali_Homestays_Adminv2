@@ -243,11 +243,11 @@ const AdminAdminUsersPage: React.FC = () => {
           </Tooltip>
         </div>
         {loading && (
-          <div className="text-center py-8 dark:text-gray-400">Loading admin users...</div>
+          <div className="text-center py-8 dark:text-gray-400">
+            Loading admin users...
+          </div>
         )}
-        {error && (
-          <div className="text-center text-red-500 py-4">{error}</div>
-        )}
+        {error && <div className="text-center text-red-500 py-4">{error}</div>}
         <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50 dark:bg-gray-800">
@@ -278,32 +278,35 @@ const AdminAdminUsersPage: React.FC = () => {
             <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-800">
               {(admins || []).map((admin) => (
                 <tr
-                  key={admin._id || admin.id}
+                  key={admin._id || admin.adminId}
                   className="border-b last:border-b-0 border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group text-gray-700 dark:text-gray-200"
                 >
                   {/* Name */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-200">
-                    {(admin.FullName || admin.firstName || "") +
-                      " " +
-                      (admin.last_name || admin.lastName || "")}
+                    {
+                      admin.full_name || admin.firstName || ""
+                      // +
+                      //   " " +
+                      //   (admin.last_name || admin.lastName || "")}
+                    }
                   </td>
                   {/* Email */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-200">
-                    {admin.EmailAddress}
+                    {admin.email}
                   </td>
                   {/* Permissions */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-200">
-                    <span>{admin.MobileNumber}</span>
+                    <span>{admin.phone}</span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-200">
-                    <span>{admin.role|| "No Role Specified"} </span>
+                    <span>{admin.role || "No Role Specified"} </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-200">
                     <span>-</span>
                   </td>
                   {/* Status */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-200">
-                    {editingId === (admin._id || admin.id) ? (
+                    {editingId === (admin._id || admin.adminId) ? (
                       <select
                         name="status"
                         value={
@@ -319,18 +322,18 @@ const AdminAdminUsersPage: React.FC = () => {
                     ) : (
                       <span
                         className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                          admin.Status
+                          admin.is_active
                             ? "bg-green-100 text-green-800"
                             : "bg-red-100 text-red-800"
                         }`}
                       >
-                        {admin.Status ? "Active" : "Inactive"}
+                        {admin.is_active ? "Active" : "Inactive"}
                       </span>
                     )}
                   </td>
                   {/* Actions */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {editingId === (admin._id || admin.id) ? (
+                    {editingId === (admin._id || admin.adminId) ? (
                       <>
                         <Tooltip content="Save">
                           <button
@@ -353,7 +356,7 @@ const AdminAdminUsersPage: React.FC = () => {
                       <>
                         <Tooltip content="Edit">
                           <button
-                            className="btn-secondary px-2 py-1 text-xs rounded-lg flex items-center justify-center"
+                            className="btn-secondary px- py-1 text-xs rounded-lg flex items-center justify-center"
                             onClick={() => handleEdit(admin)}
                           >
                             <Edit className="h-4 w-4 dark:text-gray-200" />
@@ -361,8 +364,8 @@ const AdminAdminUsersPage: React.FC = () => {
                         </Tooltip>
                         <Tooltip content="Delete">
                           <button
-                            className="btn-danger px-2 py-1 text-xs rounded-lg flex items-center justify-center ml-2 dark:text-gray-200"
-                            onClick={() => handleDelete(admin._id || admin.id)}
+                            className="btn-danger px-4 py-1 text-xs rounded-lg flex items-center justify-center ml-2 dark:text-gray-200"
+                            onClick={() => handleDelete(admin._id || admin.adminId)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>

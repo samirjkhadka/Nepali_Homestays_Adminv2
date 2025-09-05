@@ -1,4 +1,10 @@
-import  { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useEffect,
+} from "react";
 import { apiFetch } from "../services/api";
 
 export type AdminRole = "admin" | "host" | "guest";
@@ -42,20 +48,19 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
 
   // On mount, try to fetch user if token exists
 
-    const fetchProfile = async (token?: string) => {
-    
-      setLoading(true);
-      try {
-        const res = await apiFetch<{ profile: AdminUser }>(
-          "/admin/profile",
-          {},
-          token
-        );
+  const fetchProfile = async (token?: string) => {
+    setLoading(true);
+    try {
+      const res = await apiFetch<{ profile: AdminUser }>(
+        "/admin/profile",
+        {},
+        token
+      );
 
-        setUser({
+      setUser({
         id: res.profile.id,
         email: res.profile.email,
-        firstName: res.profile.firstName ,
+        firstName: res.profile.firstName,
         lastName: res.profile.lastName,
         avatar: res.profile.avatar || "",
         role: res.profile.role,
@@ -64,41 +69,34 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
         preferences: res.profile.preferences,
         createdAt: res.profile.createdAt,
         updatedAt: res.profile.updatedAt,
-      } as AdminUser); ;
-      } catch (err: any) {
-        // Only log out if 401/403 (token invalid/expired)
-        if (
-          err.message &&
-          (err.message.includes("401") ||
-            err.message.toLowerCase().includes("unauthorized") ||
-            err.message.includes("403"))
-        ) {
-          setUser(null);
-          setToken(null);
-          localStorage.removeItem("adminToken");
-        }
-        // Otherwise, keep the token and user (could be a network error)
-      } finally {
-        setLoading(false);
+      } as AdminUser);
+    } catch (err: any) {
+      // Only log out if 401/403 (token invalid/expired)
+      if (
+        err.message &&
+        (err.message.includes("401") ||
+          err.message.toLowerCase().includes("unauthorized") ||
+          err.message.includes("403"))
+      ) {
+        setUser(null);
+        setToken(null);
+        localStorage.removeItem("adminToken");
       }
-    };
+      // Otherwise, keep the token and user (could be a network error)
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    useEffect(() => {
-      if(token)
-      {
-        fetchProfile(token);
-      }
-      else
-      {
-        setLoading(false);
-      }
-    
- 
+  useEffect(() => {
+    if (token) {
+      fetchProfile(token);
+    } else {
+      setLoading(false);
+    }
   }, [token]);
 
-
   const login = async (email: string, password: string) => {
-    
     try {
       // 1. Make an API call to your backend login endpoint
       const res = await apiFetch<any>("/adminauth/adminLogin", {
@@ -127,14 +125,14 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
         setToken(token);
         // Store token in local storage for persistence
         localStorage.setItem("adminToken", token);
-       setUser(user);
+        setUser(user);
         return true;
       } else {
         // Handle cases where the API returns a success status but no token
         console.error(
           "Login failed: Token or user data missing from response."
         );
-        
+
         return false;
       }
     } catch (err: any) {
