@@ -34,17 +34,13 @@ import debounce from "lodash.debounce";
 
 const initialForm = {
   type: "",
-  name: "",
   registration_office: "",
   registration_place: "",
   registration_no: "",
   pan_no: "",
-  province: "",
-  district: "",
   municipality: "",
   ward_no: "",
-  street: "",
-  normal_package_cost: "",
+  //normal_package_cost: "",
   facilities: {},
   additional_services: "",
   bank_name: "",
@@ -53,37 +49,35 @@ const initialForm = {
   account_name: "",
   account_number: "",
   operated_house_no: "",
-  rooms_available: "",
-  guest_capacity: "",
   contact_person: "",
   contact_person_role: "",
   mobile_no: "",
   email: "",
   history: "",
   story: "",
-  about: "",
   community: "",
-  // Backend required fields
   title: "",
   description: "",
-  pricePerNight: "",
-  maxGuests: "",
+  price_Per_Night: "",
+  max_Guests: "",
   address: "",
   city: "",
   country: "",
   state: "",
-  num_bedrooms: "",
-  num_bathrooms: "",
   category: "",
-  homestay_subtype: "", // individual or community
+  homestay_subtype: "",
+  bedrooms: "",
+  bathrooms: "",
 };
+
 const initialImages = {
-  registration_certificates: [], // up to 5
+  registration_certificates: [],
   pan_vat_certificate: null,
   contact_id_front: null,
   contact_id_back: null,
-  homestay_photos: [], // up to 10
+  homestay_photos: [],
 };
+
 interface District {
   id: number;
   name: string;
@@ -100,41 +94,41 @@ interface User {
 
 function validateForm(form: any, images: any) {
   const errors: any = {};
-  // Required text fields
-  [
+  const requiredFields = [
     "type",
-    "name",
+    "title",
     "registration_office",
     "registration_place",
     "registration_no",
     "pan_no",
-    "province",
-    "district",
     "municipality",
     "ward_no",
-    "street",
-    "normal_package_cost",
+    //"normal_package_cost",
     "bank_name",
     "branch",
     "account_type",
     "account_name",
     "account_number",
     "operated_house_no",
-    "rooms_available",
-    "guest_capacity",
+    "bedrooms", // Replaced rooms_available
     "contact_person",
     "contact_person_role",
     "mobile_no",
     "email",
     "history",
     "story",
-    "about",
     "community",
     "address",
     "country",
-    "num_bathrooms",
     "category",
-  ].forEach((field) => {
+    "description",
+    "price_Per_Night",
+    "max_Guests",
+    "bedrooms",
+    "bathrooms",
+  ];
+
+  requiredFields.forEach((field) => {
     if (
       !form[field] ||
       (typeof form[field] === "string" && !form[field].trim())
@@ -143,7 +137,6 @@ function validateForm(form: any, images: any) {
     }
   });
 
-  // Validate homestay subtype when type is homestay
   if (
     form.type === "homestay" &&
     (!form.homestay_subtype || !form.homestay_subtype.trim())
@@ -151,32 +144,39 @@ function validateForm(form: any, images: any) {
     errors.homestay_subtype = "Required";
   }
 
-  // Backend validation rules (on form fields)
-  if (form.name && form.name.length < 3)
-    errors.name = "Title must be at least 3 characters long";
-  if (form.about && form.about.length < 10)
-    errors.about = "Description must be at least 10 characters long";
-  if (form.normal_package_cost && Number(form.normal_package_cost) <= 0)
-    errors.normal_package_cost = "Price per night must be greater than 0";
-  if (form.guest_capacity && Number(form.guest_capacity) <= 0)
-    errors.guest_capacity = "Maximum guests must be greater than 0";
-  if (form.num_bathrooms && Number(form.num_bathrooms) <= 0)
-    errors.num_bathrooms = "Number of bathrooms must be greater than 0";
-  // Numeric fields
+  if (form.title && form.title.length < 3) {
+    errors.title = "Title must be at least 3 characters long";
+  }
+  if (form.description && form.description.length < 10) {
+    errors.description = "Description must be at least 10 characters long";
+  }
+  if (form.price_Per_Night && Number(form.price_Per_Night) <= 0) {
+    errors.price_Per_Night = "Price per night must be greater than 0";
+  }
+  if (form.max_Guests && Number(form.max_Guests) <= 0) {
+    errors.max_Guests = "Maximum guests must be greater than 0";
+  }
+  if (form.bathrooms && Number(form.bathrooms) <= 0) {
+    errors.bathrooms = "Number of bathrooms must be greater than 0";
+  }
+  if (form.bedrooms && Number(form.bedrooms) <= 0) {
+    errors.bedrooms = "Number of bedrooms must be greater than 0";
+  }
+
   ["registration_no", "pan_no", "ward_no", "mobile_no"].forEach((field) => {
     if (form[field] && !/^[0-9]+$/.test(form[field])) {
       errors[field] = "Only numeric";
     }
   });
-  // Email
+
   if (form.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email)) {
     errors.email = "Invalid email";
   }
-  // Facilities
+
   if (!form.facilities || Object.keys(form.facilities).length === 0) {
     errors.facilities = "Select at least one facility";
   }
-  // Images
+
   if (
     !images.registration_certificates ||
     images.registration_certificates.length === 0
@@ -193,12 +193,13 @@ function validateForm(form: any, images: any) {
   } else if (images.homestay_photos.length > 10) {
     errors.homestay_photos = "Max 10 images";
   }
-  // Word count for textareas
-  ["history", "story", "about", "community"].forEach((field) => {
+
+  ["history", "story", "description", "community"].forEach((field) => {
     if (form[field] && form[field].split(/\s+/).length > 500) {
       errors[field] = "Max 500 words";
     }
   });
+
   return errors;
 }
 
@@ -229,7 +230,6 @@ const STEP_ICONS = [
   <Info className="h-5 w-5" />,
 ];
 
-// Utility to compress a single file to max 500 KB
 async function compressImage(file: File): Promise<File> {
   if (!file.type.startsWith("image/")) return file;
   const options = {
@@ -240,15 +240,12 @@ async function compressImage(file: File): Promise<File> {
   try {
     const compressedFile = await imageCompression(file, options);
     return new File([compressedFile], file.name, { type: compressedFile.type });
-
-    //return compressed;
   } catch (err) {
     console.error(err);
     return file;
   }
 }
 
-// Utility to upload images/files for a field
 async function uploadImages(files: File[], token: string): Promise<string[]> {
   const formData = new FormData();
   for (const file of files) {
@@ -257,7 +254,7 @@ async function uploadImages(files: File[], token: string): Promise<string[]> {
   const res = await fetch(
     `${
       import.meta.env.VITE_API_URL || "http://localhost:4000/api/v1"
-    }/listings/upload/images`,
+    }/admin/upload/images`,
     {
       method: "POST",
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -266,7 +263,6 @@ async function uploadImages(files: File[], token: string): Promise<string[]> {
   );
   if (!res.ok) throw new Error("Image upload failed");
   const data = await res.json();
-  // Try different response formats
   const urls = data.urls || data.data?.urls || [];
   return urls;
 }
@@ -286,76 +282,24 @@ const AdminAddListingPage: React.FC = () => {
   const [provinces, setProvinces] = useState<string[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
   const [municipalities, setMunicipalities] = useState<string[]>([]);
-  //const [users, setUsers] = useState<User[]>([]);
   const [apiLoading, setApiLoading] = useState<boolean>(false);
 
-  const loadUsers = useCallback(
-    debounce(
-      (
-        inputValue: string,
-        callback: (options: { value: string; label: string }[]) => void
-      ) => {
-        console.log("Loading users...", inputValue);
-        (async () => {
-          try {
-            const queryParams: Record<string, string> = {
-              page: "1",
-              limit: "10",
-            };
-            if (inputValue) {
-              queryParams.search = inputValue;
-            }
-            const query = new URLSearchParams(queryParams).toString();
-            console.log("Fetching users with Query:", query);
-            const response = await apiFetch<{
-              data: {
-                users: User[];
-                pagination: {
-                  page: number;
-                  limit: number;
-                  total: number;
-                  totalPages: number;
-                };
-              };
-            }>(`/admin/users?${query}`, {}, token || "");
-            const options = response.data.users.map((user) => ({
-              value: user.Id,
-              label: `${user.FullName} (${user.EmailAddress})`,
-            }));
-            console.log("Fetched users:", options);
-            callback(options);
-          } catch (error) {
-            console.error("Error fetching users:", error);
-            setErrors((prev: any) => ({
-              ...prev,
-              host: "Failed to load users",
-            }));
-            callback([]);
-          }
-        })();
-      },
-      300
-    ),
-    [token]
-  );
-
   useEffect(() => {
-    if (form.province) {
+    if (form.state) {
       const fetchDistricts = async () => {
         setApiLoading(true);
-        setDistricts([]); // Clear districts
-        setMunicipalities([]); // Clear municipalities
-        setForm((prev: any) => ({ ...prev, district: "", municipality: "" })); // Reset dependent fields
+        setDistricts([]);
+        setMunicipalities([]);
+        setForm((prev: any) => ({ ...prev, city: "", municipality: "" }));
         try {
-          const provinceId = provinces.indexOf(form.province) + 1; // Assuming 1-based indexing
+          const provinceId = provinces.indexOf(form.state) + 1;
           const response = await apiFetch<string[]>(
-            `/admin/provinces/${provinceId}/districts`,
+            `/staticData/provinces/${provinceId}/districts`,
             {},
             token || ""
           );
-          // Map district names to objects with IDs (assuming IDs are not provided; adjust as needed)
           const districtObjects = response.map((name, index) => ({
-            id: index + 1, // Temporary ID; replace with actual ID from API
+            id: index + 1,
             name,
           }));
           setDistricts(districtObjects);
@@ -363,7 +307,7 @@ const AdminAddListingPage: React.FC = () => {
           console.error("Error fetching districts:", error);
           setErrors((prev: any) => ({
             ...prev,
-            district: "Failed to load districts",
+            city: "Failed to load districts",
           }));
         } finally {
           setApiLoading(false);
@@ -371,20 +315,17 @@ const AdminAddListingPage: React.FC = () => {
       };
       fetchDistricts();
     }
-  }, [form.province, provinces]);
+  }, [form.state, provinces, token]);
 
-  // NEW: Fetch municipalities when district changes
   useEffect(() => {
-    if (form.district) {
+    if (form.city) {
       const fetchMunicipalities = async () => {
         setApiLoading(true);
-        setMunicipalities([]); // Clear municipalities
-        setForm((prev: any) => ({ ...prev, municipality: "" })); // Reset municipality
+        setMunicipalities([]);
+        setForm((prev: any) => ({ ...prev, municipality: "" }));
         try {
-          //  const selectedDistrict = districts.find(d => d.name === form.district);
-          // const districtId = selectedDistrict ? selectedDistrict.id : 1; // Fallback to 1 if not found
           const response = await apiFetch<string[]>(
-            `/admin/provinces/${form.district}/municipalities`,
+            `/staticData/provinces/${form.city}/municipalities`,
             {},
             token || ""
           );
@@ -401,34 +342,14 @@ const AdminAddListingPage: React.FC = () => {
       };
       fetchMunicipalities();
     }
-  }, [form.district, token]);
-
-  // useEffect(() => {
-  //   const fetchUsers = async () => {
-  //     setApiLoading(true);
-  //     try {
-  //       const response = await apiFetch<{ data: { users: User[] } }>(
-  //         "/admin/users",
-  //         {},
-  //         token || ""
-  //       );
-  //       setUsers(response.data.users);
-  //     } catch (error) {
-  //       console.error("Error fetching users:", error);
-  //       setErrors((prev: any) => ({ ...prev, host: "Failed to load users" }));
-  //     } finally {
-  //       setApiLoading(false);
-  //     }
-  //   };
-  //   fetchUsers();
-  // }, [token]);
+  }, [form.city, token]);
 
   useEffect(() => {
     const fetchProvinces = async () => {
       setApiLoading(true);
       try {
         const response = await apiFetch<{ data: { provinces: string[] } }>(
-          "/admin/provinces",
+          "/staticData/provinces",
           {},
           token || ""
         );
@@ -437,35 +358,15 @@ const AdminAddListingPage: React.FC = () => {
         console.error("Error fetching provinces:", error);
         setErrors((prev: any) => ({
           ...prev,
-          province: "Failed to load provinces",
+          state: "Failed to load provinces",
         }));
       } finally {
         setApiLoading(false);
       }
     };
     fetchProvinces();
-  }, []);
+  }, [token]);
 
-  //handler for React-Select
-  const handleHostChange = (
-    selectedOption: { value: string; label: string } | null
-  ) => {
-    setForm((prev: any) => ({
-      ...prev,
-      host: selectedOption ? selectedOption.value : "",
-    }));
-    setErrors((prev: any) => {
-      const newErrors = { ...prev };
-      if (!selectedOption) {
-        newErrors.host = "Required";
-      } else {
-        delete newErrors.host;
-      }
-      return newErrors;
-    });
-  };
-
-  // Handlers
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -473,6 +374,7 @@ const AdminAddListingPage: React.FC = () => {
   ) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
+
   const handleFacilityChange = (category: string, option: string) => {
     setForm((prev: any) => {
       const selected = prev.facilities?.[category] || [];
@@ -488,7 +390,7 @@ const AdminAddListingPage: React.FC = () => {
       };
     });
   };
-  // Image uploaders
+
   const handleImageChange = (
     e: React.ChangeEvent<HTMLInputElement>,
     field: string,
@@ -505,23 +407,25 @@ const AdminAddListingPage: React.FC = () => {
       setImages((prev: any) => ({ ...prev, [field]: files[0] }));
     }
   };
+
   const handleRemoveImage = (field: string, idx: number) => {
     setImages((prev: any) => ({
       ...prev,
       [field]: prev[field].filter((_: any, i: number) => i !== idx),
     }));
   };
-  // Validation and submit
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs = validateForm(form, images);
     if (Object.keys(errs).length > 0) {
+      console.log("Validation Errors on Submit:", errs);
       setErrors(errs);
+
       return;
     }
     setLoading(true);
     try {
-      // 1. Compress images
       const compressAll = async (arr: File[]) =>
         Promise.all(arr.map((f) => compressImage(f)));
       const registrationCerts = await compressAll(
@@ -537,7 +441,7 @@ const AdminAddListingPage: React.FC = () => {
         ? [await compressImage(images.contact_id_back)]
         : [];
       const homestayPhotos = await compressAll(images.homestay_photos || []);
-      // 2. Upload each type
+
       const [regCertUrls, panCertUrls, idFrontUrls, idBackUrls, photoUrls] =
         await Promise.all([
           registrationCerts.length
@@ -556,39 +460,67 @@ const AdminAddListingPage: React.FC = () => {
             ? uploadImages(homestayPhotos, token || "")
             : Promise.resolve([]),
         ]);
-      // 3. Prepare payload
+
       const payload = {
-        ...form,
-        title: form.name,
-        description: form.about,
-        pricePerNight: Number(form.normal_package_cost),
-        maxGuests: Number(form.guest_capacity),
-        address: form.address,
-        city: form.district, // use district for city
-        country: form.country,
-        state: form.province, // use province for state
-        bedrooms: Number(form.rooms_available), // use rooms_available for bedrooms
-        bathrooms: Number(form.num_bathrooms), // use num_bathrooms for bathrooms
         type: form.type,
-        category: form.category,
-        homestay_subtype: form.homestay_subtype, // include homestay subtype
-        registration_certificates: regCertUrls,
-        pan_vat_certificate: panCertUrls[0] || "",
-        contact_id_front: idFrontUrls[0] || "",
-        contact_id_back: idBackUrls[0] || "",
-        homestay_photos: photoUrls,
-        activity_prices: activityPrices,
-        host: form.host,
+      registration_office: form.registration_office,
+      registration_place: form.registration_place,
+      registration_no: form.registration_no,
+      pan_no: form.pan_no,
+      municipality: form.municipality,
+      ward_no: form.ward_no,
+      //normal_package_cost: form.normal_package_cost,
+      facilities: form.facilities,
+      additional_services: form.additional_services,
+      bank_name: form.bank_name,
+      branch: form.branch,
+      account_type: form.account_type,
+      account_name: form.account_name,
+      account_number: form.account_number,
+      operated_house_no: form.operated_house_no,
+      // rooms_available: form.rooms_available, // Removed as it's not used
+      contact_person: form.contact_person,
+      contact_person_role: form.contact_person_role,
+      mobile_no: form.mobile_no,
+      email: form.email,
+      history: form.history,
+      story: form.story,
+      community: form.community,
+      title: form.title,
+      description: form.description,
+      price_Per_Night: Number(form.price_Per_Night),
+      max_Guests: Number(form.max_Guests),
+      address: form.address,
+      city: form.city,
+      country: form.country,
+      state: form.state,
+      category: form.category,
+      homestay_subtype: form.type === "homestay" ? form.homestay_subtype : "",
+      bedrooms: Number(form.bedrooms),
+      bathrooms: Number(form.bathrooms),
+      registration_certificates: regCertUrls,
+      pan_vat_certificate: panCertUrls[0] || "",
+      contact_id_front: idFrontUrls[0] || "",
+      contact_id_back: idBackUrls[0] || "",
+      homestay_photos: photoUrls,
+      activity_prices: activityPrices,
       };
-      // 4. Submit listing
-      await apiFetch(
-        "/listings",
+
+      console.log("Submitting payload:", payload);
+      const response =await apiFetch(
+        "/admin/listings/create",
         {
           method: "POST",
           body: JSON.stringify(payload),
         },
         token || ""
       );
+      console.log("API Response: ",{
+        status:response.status,
+        data:response.data || response.body || "No data",
+        error:response.error || null,
+
+      })
       showSuccess(
         "Listing Added Successfully!",
         "Your listing has been created and is pending approval."
@@ -598,40 +530,34 @@ const AdminAddListingPage: React.FC = () => {
       const errorMessage = err.message || "Failed to add listing";
       setErrors({ submit: errorMessage });
       showError("Failed to Add Listing", errorMessage);
-      console.error("Submit error:", err);
+      console.error("Submit error:", {
+        message:err.message,
+        code:err.code,
+        stack:err.stack
+      });
     } finally {
       setLoading(false);
     }
   };
-  const isValid = Object.keys(validateForm(form, images)).length === 0;
 
-  // Step validation
   function validateStep(currentStep: number) {
     const stepFields: Record<number, string[]> = {
       0: [
         "type",
-        "name",
+        "title",
         "registration_office",
         "registration_place",
         "registration_no",
         "pan_no",
         "operated_house_no",
-        "rooms_available",
-        "guest_capacity",
-        "num_bathrooms",
+       
+        "max_Guests",
+        "bathrooms",
         "category",
-        "host",
+        "price_Per_Night",
+        "bedrooms",
       ],
-      1: [
-        "province",
-        "district",
-        "municipality",
-        "ward_no",
-        "street",
-        "normal_package_cost",
-        "address",
-        "country",
-      ],
+      1: ["state", "city", "municipality", "ward_no", "address", "country"],
       2: ["facilities"],
       3: [
         "bank_name",
@@ -641,12 +567,17 @@ const AdminAddListingPage: React.FC = () => {
         "account_number",
       ],
       4: ["contact_person", "contact_person_role", "mobile_no", "email"],
-      5: [], // handled below
-      6: [], // handled below
-      7: ["additional_services", "history", "story", "about", "community"],
+      5: [],
+      6: [],
+      7: [
+        "additional_services",
+        "history",
+        "story",
+        "description",
+        "community",
+      ],
     };
     const errs: any = {};
-    // Validate only fields for this step
     (stepFields[currentStep] || []).forEach((field) => {
       if (
         !form[field] ||
@@ -655,24 +586,41 @@ const AdminAddListingPage: React.FC = () => {
         errs[field] = "Required";
       }
     });
-    // Step-specific validation
+
     if (currentStep === 0) {
+      if (
+        form.type === "homestay" &&
+        (!form.homestay_subtype || !form.homestay_subtype.trim())
+      ) {
+        errs.homestay_subtype = "Required";
+      }
       ["registration_no", "pan_no"].forEach((field) => {
         if (form[field] && !/^[0-9]+$/.test(form[field])) {
           errs[field] = "Only numeric";
         }
       });
+      if (form.price_Per_Night && Number(form.price_Per_Night) <= 0) {
+        errs.price_Per_Night = "Price per night must be greater than 0";
+      }
+      if (form.max_Guests && Number(form.max_Guests) <= 0) {
+        errs.max_Guests = "Maximum guests must be greater than 0";
+      }
+      if (form.bathrooms && Number(form.bathrooms) <= 0) {
+        errs.bathrooms = "Number of bathrooms must be greater than 0";
+      }
+      if (form.bedrooms && Number(form.bedrooms) <= 0) {
+        errs.bedrooms = "Number of bedrooms must be greater than 0";
+      }
     }
     if (currentStep === 1) {
-      if (form["ward_no"] && !/^[0-9]+$/.test(form["ward_no"])) {
-        errs["ward_no"] = "Only numeric";
+      if (form.ward_no && !/^[0-9]+$/.test(form.ward_no)) {
+        errs.ward_no = "Only numeric";
       }
     }
     if (currentStep === 2) {
       if (!form.facilities || Object.keys(form.facilities).length === 0) {
         errs.facilities = "Select at least one facility";
       }
-      // Validate activity prices for selected activities
       const selectedActs = form.facilities?.Activities || [];
       selectedActs.forEach((act: string) => {
         if (
@@ -686,8 +634,8 @@ const AdminAddListingPage: React.FC = () => {
       });
     }
     if (currentStep === 4) {
-      if (form["mobile_no"] && !/^[0-9]+$/.test(form["mobile_no"])) {
-        errs["mobile_no"] = "Only numeric";
+      if (form.mobile_no && !/^[0-9]+$/.test(form.mobile_no)) {
+        errs.mobile_no = "Only numeric";
       }
       if (form.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email)) {
         errs.email = "Invalid email";
@@ -714,7 +662,7 @@ const AdminAddListingPage: React.FC = () => {
       }
     }
     if (currentStep === 7) {
-      ["history", "story", "about", "community"].forEach((field) => {
+      ["history", "story", "description", "community"].forEach((field) => {
         if (form[field] && form[field].split(/\s+/).length > 500) {
           errs[field] = "Max 500 words";
         }
@@ -725,12 +673,13 @@ const AdminAddListingPage: React.FC = () => {
 
   const handleNext = () => {
     const errs = validateStep(step);
+    console.log("Step 0 Validation Errors:", errs)
     setErrors(errs);
     if (Object.keys(errs).length === 0) setStep((s) => s + 1);
   };
+
   const handleBack = () => setStep((s) => s - 1);
 
-  // Activity price handler
   const handleActivityPriceChange = (
     act: string,
     field: string,
@@ -742,7 +691,6 @@ const AdminAddListingPage: React.FC = () => {
     }));
   };
 
-  // Real-time validation on input
   const handleValidatedChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -750,18 +698,16 @@ const AdminAddListingPage: React.FC = () => {
   ) => {
     handleChange(e);
     const errs = validateStep(step);
+    console.log("Validated Change Errors:", errs);
     setErrors(errs);
   };
 
-  // Stepper UI
   return (
     <>
       <PageMeta title="Nepali Homestays" description="Add New Listing" />
       <PageBreadcrumb pageTitle="Add New Listing" />
       <div className="">
-        {/* <h1 className="text-2xl font-bold mb-8 text-nepal-blue font-heading self-center md:self-start">Add New Listing</h1> */}
         <div className="flex flex-col md:flex-row gap-12 w-full max-w-7xl mx-auto">
-          {/* Stepper */}
           <div className="w-full md:w-80 flex-shrink-0 mb-8 md:mb-0">
             <ol className="space-y-6 bg-white text-gray-500 dark:bg-gray-900 rounded-xl shadow p-8 border border-gray-100 dark:border-gray-800">
               {STEPS.map((label, idx) => (
@@ -793,7 +739,6 @@ const AdminAddListingPage: React.FC = () => {
               ))}
             </ol>
           </div>
-          {/* Step Content */}
           <form onSubmit={handleSubmit} className="flex-1 min-w-0 space-y-12">
             <AnimatePresence mode="wait">
               {step === 0 && (
@@ -816,7 +761,7 @@ const AdminAddListingPage: React.FC = () => {
                       name="type"
                       value={form.type}
                       onChange={handleValidatedChange}
-                      className={`block w-full px-3 py-2 rounded-xl  border dark:bg-gray-900 dark:text-gray-200 ${
+                      className={`block w-full px-3 py-2 rounded-xl border dark:bg-gray-900 dark:text-gray-200 ${
                         errors.type
                           ? "border-red-400"
                           : form.type
@@ -838,11 +783,10 @@ const AdminAddListingPage: React.FC = () => {
                       </div>
                     )}
                   </div>
-
                   {form.type === "homestay" && (
                     <div className="mb-6">
                       <label className="block text-xs font-medium mb-1 dark:text-gray-200">
-                        Homestay Type <span className="text-red-500">*</span>
+                        Homestay Subtype <span className="text-red-500">*</span>
                       </label>
                       <div className="flex gap-6">
                         <label
@@ -918,94 +862,35 @@ const AdminAddListingPage: React.FC = () => {
                         </div>
                       )}
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium mb-1">
-                        Host <span className="text-red-500">*</span>
-                      </label>
-                      <AsyncSelect
-                        //cacheOptions
-                        defaultOptions
-                        loadOptions={loadUsers}
-                        onChange={handleHostChange}
-                        placeholder="Search for a host..."
-                        isClearable
-                        isDisabled={apiLoading}
-                        classNamePrefix="react-select"
-                        styles={{
-                          control: (base, state) => ({
-                            ...base,
-                            borderRadius: "0.75rem",
-                            padding: "2px 4px",
-                            borderColor: errors.host
-                              ? "#f87171"
-                              : form.host
-                              ? "#34d399"
-                              : "#e5e7eb",
-                            "&:hover": {
-                              borderColor: errors.host
-                                ? "#f87171"
-                                : form.host
-                                ? "#34d399"
-                                : "#d1d5db",
-                            },
-                            boxShadow: state.isFocused
-                              ? "0 0 0 1px #2563eb"
-                              : "none",
-                            backgroundColor: state.isDisabled
-                              ? "#f3f4f6"
-                              : "white",
-                          }),
-                          menu: (base) => ({
-                            ...base,
-                            backgroundColor: "white",
-                            color: "#1f2937",
-                          }),
-                          option: (base, state) => ({
-                            ...base,
-                            backgroundColor: state.isSelected
-                              ? "#2563eb"
-                              : state.isFocused
-                              ? "#eff6ff"
-                              : "white",
-                            color: state.isSelected ? "white" : "#1f2937",
-                          }),
-                        }}
-                      />
-                      {errors.host && (
-                        <div className="text-red-500 text-xs mt-1">
-                          {errors.host}
-                        </div>
-                      )}
-                    </div>
                   </div>
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 dark:text-gray-200 mt-6">
                     <div>
                       <label className="block text-xs font-medium mb-1">
                         Homestay Name <span className="text-red-500">*</span>
                       </label>
                       <input
-                        name="name"
-                        value={form.name}
+                        name="title"
+                        value={form.title}
                         onChange={handleValidatedChange}
                         className={`border w-full px-3 py-2 rounded-xl ${
-                          errors.name
+                          errors.title
                             ? "border-red-400"
-                            : form.name
+                            : form.title
                             ? "border-green-400"
                             : ""
                         }`}
                         required
                       />
-                      {errors.name && (
+                      {errors.title && (
                         <div className="text-red-500 text-xs mt-1">
-                          {errors.name}
+                          {errors.title}
                         </div>
                       )}
                     </div>
                     <div>
                       <label className="block text-xs font-medium mb-1">
-                        Office of Registration
+                        Office of Registration{" "}
+                        <span className="text-red-500">*</span>
                       </label>
                       <input
                         name="registration_office"
@@ -1028,7 +913,8 @@ const AdminAddListingPage: React.FC = () => {
                     </div>
                     <div>
                       <label className="block text-xs font-medium mb-1">
-                        Place of Registration
+                        Place of Registration{" "}
+                        <span className="text-red-500">*</span>
                       </label>
                       <input
                         name="registration_place"
@@ -1125,21 +1011,22 @@ const AdminAddListingPage: React.FC = () => {
                         <span className="text-red-500">*</span>
                       </label>
                       <input
-                        name="rooms_available"
-                        value={form.rooms_available}
+                        type="number"
+                        name="bedrooms"
+                        value={form.bedrooms}
                         onChange={handleValidatedChange}
                         className={`border w-full px-3 py-2 rounded-xl ${
-                          errors.rooms_available
+                          errors.bedrooms
                             ? "border-red-400"
-                            : form.rooms_available
+                            : form.bedrooms
                             ? "border-green-400"
                             : ""
                         }`}
                         required
                       />
-                      {errors.rooms_available && (
+                      {errors.bedrooms && (
                         <div className="text-red-500 text-xs mt-1">
-                          {errors.rooms_available}
+                          {errors.bedrooms}
                         </div>
                       )}
                     </div>
@@ -1148,21 +1035,22 @@ const AdminAddListingPage: React.FC = () => {
                         Guest Capacity <span className="text-red-500">*</span>
                       </label>
                       <input
-                        name="guest_capacity"
-                        value={form.guest_capacity}
+                        type="number"
+                        name="max_Guests"
+                        value={form.max_Guests}
                         onChange={handleValidatedChange}
                         className={`border w-full px-3 py-2 rounded-xl ${
-                          errors.guest_capacity
+                          errors.max_Guests
                             ? "border-red-400"
-                            : form.guest_capacity
+                            : form.max_Guests
                             ? "border-green-400"
                             : ""
                         }`}
                         required
                       />
-                      {errors.guest_capacity && (
+                      {errors.max_Guests && (
                         <div className="text-red-500 text-xs mt-1">
-                          {errors.guest_capacity}
+                          {errors.max_Guests}
                         </div>
                       )}
                     </div>
@@ -1173,21 +1061,21 @@ const AdminAddListingPage: React.FC = () => {
                       </label>
                       <input
                         type="number"
-                        name="num_bathrooms"
-                        value={form.num_bathrooms}
+                        name="bathrooms"
+                        value={form.bathrooms}
                         onChange={handleValidatedChange}
                         className={`border w-full px-3 py-2 rounded-xl ${
-                          errors.num_bathrooms
+                          errors.bathrooms
                             ? "border-red-400"
-                            : form.num_bathrooms
+                            : form.bathrooms
                             ? "border-green-400"
                             : ""
                         }`}
                         required
                       />
-                      {errors.num_bathrooms && (
+                      {errors.bathrooms && (
                         <div className="text-red-500 text-xs mt-1">
-                          {errors.num_bathrooms}
+                          {errors.bathrooms}
                         </div>
                       )}
                     </div>
@@ -1197,21 +1085,22 @@ const AdminAddListingPage: React.FC = () => {
                         <span className="text-red-500">*</span>
                       </label>
                       <input
-                        name="normal_package_cost"
-                        value={form.normal_package_cost}
+                        type="number"
+                        name="price_Per_Night"
+                        value={form.price_Per_Night}
                         onChange={handleValidatedChange}
                         className={`border w-full px-3 py-2 rounded-xl ${
-                          errors.normal_package_cost
+                          errors.price_Per_Night
                             ? "border-red-400"
-                            : form.normal_package_cost
+                            : form.price_Per_Night
                             ? "border-green-400"
                             : ""
                         }`}
                         required
                       />
-                      {errors.normal_package_cost && (
+                      {errors.price_Per_Night && (
                         <div className="text-red-500 text-xs mt-1">
-                          {errors.normal_package_cost}
+                          {errors.price_Per_Night}
                         </div>
                       )}
                     </div>
@@ -1236,13 +1125,13 @@ const AdminAddListingPage: React.FC = () => {
                         Province <span className="text-red-500">*</span>
                       </label>
                       <select
-                        name="province"
-                        value={form.province}
+                        name="state"
+                        value={form.state}
                         onChange={handleValidatedChange}
                         className={`border w-full px-3 py-2 rounded-xl ${
-                          errors.province
+                          errors.state
                             ? "border-red-400"
-                            : form.province
+                            : form.state
                             ? "border-green-400"
                             : ""
                         }`}
@@ -1254,9 +1143,9 @@ const AdminAddListingPage: React.FC = () => {
                           <option key={p}>{p}</option>
                         ))}
                       </select>
-                      {errors.province && (
+                      {errors.state && (
                         <div className="text-red-500 text-xs mt-1">
-                          {errors.province}
+                          {errors.state}
                         </div>
                       )}
                     </div>
@@ -1265,27 +1154,27 @@ const AdminAddListingPage: React.FC = () => {
                         District <span className="text-red-500">*</span>
                       </label>
                       <select
-                        name="district"
-                        value={form.district}
+                        name="city"
+                        value={form.city}
                         onChange={handleValidatedChange}
                         className={`border w-full px-3 py-2 rounded-xl ${
-                          errors.district
+                          errors.city
                             ? "border-red-400"
-                            : form.district
+                            : form.city
                             ? "border-green-400"
                             : ""
                         }`}
                         required
-                        disabled={!form.province || apiLoading}
+                        disabled={!form.state || apiLoading}
                       >
                         <option value="">Select District</option>
                         {districts.map((d) => (
                           <option key={d.id}>{d.name}</option>
                         ))}
                       </select>
-                      {errors.district && (
+                      {errors.city && (
                         <div className="text-red-500 text-xs mt-1">
-                          {errors.district}
+                          {errors.city}
                         </div>
                       )}
                     </div>
@@ -1305,7 +1194,7 @@ const AdminAddListingPage: React.FC = () => {
                             : ""
                         }`}
                         required
-                        disabled={!form.district || apiLoading}
+                        disabled={!form.city || apiLoading}
                       >
                         <option value="">Select Municipality</option>
                         {municipalities.map((m) => (
@@ -1343,30 +1232,6 @@ const AdminAddListingPage: React.FC = () => {
                         </div>
                       )}
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium mb-1">
-                        Street <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        name="street"
-                        value={form.street}
-                        onChange={handleValidatedChange}
-                        className={`border w-full px-3 py-2 rounded-xl ${
-                          errors.street
-                            ? "border-red-400"
-                            : form.street
-                            ? "border-green-400"
-                            : ""
-                        }`}
-                        required
-                      />
-                      {errors.street && (
-                        <div className="text-red-500 text-xs mt-1">
-                          {errors.street}
-                        </div>
-                      )}
-                    </div>
-
                     <div>
                       <label className="block text-xs font-medium mb-1">
                         Address <span className="text-red-500">*</span>
@@ -1464,7 +1329,6 @@ const AdminAddListingPage: React.FC = () => {
                         </div>
                       </div>
                     ))}
-                    {/* Internet */}
                     <div>
                       <div className="font-semibold text-xs mb-2">Internet</div>
                       <label className="flex items-center gap-1">
@@ -1481,7 +1345,6 @@ const AdminAddListingPage: React.FC = () => {
                         Available
                       </label>
                     </div>
-                    {/* Community Hall with Capacity */}
                     <div className="flex items-center gap-4 mt-2">
                       <label className="flex items-center gap-1">
                         <input
@@ -1508,7 +1371,6 @@ const AdminAddListingPage: React.FC = () => {
                         />
                       )}
                     </div>
-                    {/* Community Museum */}
                     <div>
                       <label className="flex items-center gap-1">
                         <input
@@ -1525,7 +1387,6 @@ const AdminAddListingPage: React.FC = () => {
                         Community Museum
                       </label>
                     </div>
-                    {/* Gift Shop */}
                     <div>
                       <label className="flex items-center gap-1">
                         <input
@@ -1541,7 +1402,6 @@ const AdminAddListingPage: React.FC = () => {
                         Gift Shop
                       </label>
                     </div>
-                    {/* Cultural Program */}
                     <div>
                       <div className="font-semibold text-xs mb-2">
                         Cultural Program
@@ -1566,7 +1426,6 @@ const AdminAddListingPage: React.FC = () => {
                         </label>
                       ))}
                     </div>
-                    {/* Activities with pricing */}
                     <div>
                       <div className="font-semibold text-xs mb-2">
                         Activities
@@ -1588,7 +1447,6 @@ const AdminAddListingPage: React.FC = () => {
                           </label>
                         ))}
                       </div>
-                      {/* Activity pricing UI */}
                       {form.facilities?.Activities?.length > 0 && (
                         <div className="mt-4 space-y-4">
                           {form.facilities.Activities.map((act: string) => (
@@ -2229,22 +2087,22 @@ const AdminAddListingPage: React.FC = () => {
                         About Us (max 500 words)
                       </label>
                       <textarea
-                        name="about"
-                        value={form.about}
+                        name="description"
+                        value={form.description}
                         onChange={handleValidatedChange}
                         className={`border w-full px-3 py-2 rounded-xl ${
-                          errors.about
+                          errors.description
                             ? "border-red-400"
-                            : form.about
+                            : form.description
                             ? "border-green-400"
                             : ""
                         }`}
                         required
                         rows={3}
                       />
-                      {errors.about && (
+                      {errors.description && (
                         <div className="text-red-500 text-xs mt-1">
-                          {errors.about}
+                          {errors.description}
                         </div>
                       )}
                     </div>
@@ -2292,11 +2150,7 @@ const AdminAddListingPage: React.FC = () => {
                   className=""
                   variant="primary"
                   endIcon={<ArrowRightIcon />}
-                  onClick={() => {
-                    const errs = validateStep(step);
-                    setErrors(errs);
-                    if (Object.keys(errs).length === 0) setStep((s) => s + 1);
-                  }}
+                  onClick={handleNext}
                 >
                   Next
                 </Button>

@@ -157,13 +157,13 @@ const AdminListingsPage: React.FC = () => {
 
   const handleModerate = async (
     id: string,
-    action: "approve" | "reject" | "suspend"
+    action: "approve" | "reject" | "delete"
   ) => {
     setActionLoading(id + action);
     try {
       await apiFetch(
-        `/listings/${id}/${action}`,
-        { method: "PUT" },
+        `/admin/listings/${id}/${action}`,
+        { method: "POST" },
         token || ""
       );
       showSuccess(
@@ -264,10 +264,10 @@ const AdminListingsPage: React.FC = () => {
               <tbody>
                 {paginated.map((listing) => (
                   <tr
-                    key={listing.HomestayID || listing.HomestayID}
+                    key={listing.id || listing.id}
                     className="border-b last:border-b-0 border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group text-gray-700 dark:text-gray-200"
                   >
-                    <td className="py-3 px-4">{listing.HomestayName}</td>
+                    <td className="py-3 px-4">{listing.title}</td>
                     <td className="py-3 px-4">
                       {`${listing.host_first_name || ""} ${
                         listing.host_last_name || ""
@@ -290,23 +290,23 @@ const AdminListingsPage: React.FC = () => {
                     <td className="py-3 px-4">
                       <span
                         className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                          listing.Status === "Y"
+                          listing.status === "active"
                             ? "bg-green-100 text-green-800"
-                            : listing.Status === "P"
+                            : listing.status === "pending"
                             ? "bg-yellow-100 text-yellow-800"
-                            : listing.Status === "R"
+                            : listing.status === "inactive"
                             ? "bg-red-100 text-red-800"
-                            : listing.Status === "S"
+                            : listing.status === "rejected"
                             ? "bg-gray-200 text-gray-700"
                             : ""
                         }`}
                       >
-                        {listing.Status === "Y"
+                        {listing.status === "active"
                           ? "Active"
-                          : listing.Status === "R"
+                          : listing.status === "rejected"
                           ? "Rejected"
-                          : listing.Status === "S"
-                          ? "Suspended"
+                          : listing.status === "inactive"
+                          ? "Inactive"
                           : "Pending"}
                       </span>
                     </td>
@@ -361,22 +361,40 @@ const AdminListingsPage: React.FC = () => {
                           </button>
                         </Tooltip>
                       )}
-                      {listing.status !== "suspended" && (
-                        <Tooltip content="Suspend">
+                      {listing.status !== "inactive" ? (
+                        <Tooltip content="Inactive">
                           <button
                             className="btn-secondary px-2 py-1 text-xs rounded-lg flex items-center justify-center disabled:opacity-50"
                             disabled={
                               actionLoading ===
-                              (listing._id || listing.HomestayID) + "suspend"
+                              (listing._id || listing.id) + "delete"
                             }
                             onClick={() =>
                               handleModerate(
-                                listing._id || listing.HomestayID,
-                                "suspend"
+                                listing._id || listing.id,
+                                "delete"
                               )
                             }
                           >
                             <Ban className="h-4 w-4" />
+                          </button>
+                        </Tooltip>
+                      ) : (
+                        <Tooltip content="Activate">
+                          <button
+                            className="btn-primary px-2 py-1 text-xs rounded-lg flex items-center justify-center disabled:opacity-50"
+                            disabled={
+                              actionLoading ===
+                              (listing._id || listing.id) + "delete"
+                            }
+                            onClick={() =>
+                              handleModerate(
+                                listing._id || listing.id,
+                                "delete"
+                              )
+                            }
+                          >
+                            <CheckCircle className="h-4 w-4" />
                           </button>
                         </Tooltip>
                       )}
@@ -385,9 +403,7 @@ const AdminListingsPage: React.FC = () => {
                           className="btn-secondary px-2 py-1 text-xs rounded-lg flex items-center justify-center"
                           onClick={() =>
                             navigate(
-                              `/admin/listings/view/${
-                                listing._id || listing.HomestayID
-                              }`
+                              `/admin/listings/view/${listing.id || listing.id}`
                             )
                           }
                         >
